@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createChatWithNextId, openDatabase } from '~/lib/persistence/db';
 import { createMessage } from '~/lib/persistence/messageMigration';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 type WorkspaceContext = { workspaceId: string; title: string; briefing: string; proposalUrl: string; files: Array<{ path: string; content: string }> };
 const MANAGED_PROVIDER = 'OpenRouter';
@@ -21,6 +22,12 @@ export function AgencyWorkspaceBootstrap() {
     }).then(async (response) => {
       const body = await response.json().catch(() => null) as WorkspaceContext & { error?: string } | null;
       if (!response.ok || !body?.workspaceId || !body.proposalUrl) throw new Error(body?.error ?? 'De project-sessie kon niet worden geopend.');
+      if (!Array.isArray(body.files) || body.files.length === 0) throw new Error('De huidige projectbestanden ontbreken in de klantworkspace.');
+      // Hydrate before navigating to the persisted chat. The chat history
+      // loader deliberately preserves this first managed workbench, so Bolt
+      // can never present a customer session as ready while its source files
+      // are still waiting on a later effect.
+      await workbenchStore.importManagedProject(body.files);
       const database = await openDatabase();
       if (!database) throw new Error('De lokale Bolt-workspace kon niet worden voorbereid.');
       const seeded = await createChatWithNextId(
@@ -34,6 +41,7 @@ export function AgencyWorkspaceBootstrap() {
       database.close();
       if (!seeded.urlId) throw new Error('De lokale Bolt-workspace kon niet worden geïdentificeerd.');
       sessionStorage.setItem('agency-os-managed-workspace', JSON.stringify({ ticket, workspaceId: seeded.urlId, sessionId: body.workspaceId, title: body.title, briefing: body.briefing, proposalUrl: body.proposalUrl, files: body.files }));
+      sessionStorage.setItem(`agency-os-managed-workspace:initial:${seeded.urlId}`, '1');
       // A managed Agency OS workspace must always use the server-approved
       // provider/model pair. This also prevents an old Bolt cookie from
       // selecting a model that the Agency OS OpenRouter workspace disallows.
