@@ -167,7 +167,9 @@ export async function selectContext(props: {
 
         `,
     model: provider.getModelInstance({
-      model: currentModel,
+      // If the message did not carry a model marker, use the model resolved
+      // above instead of sending Bolt's legacy default to this provider.
+      model: modelDetails.name,
       serverEnv,
       apiKeys,
       providerSettings,

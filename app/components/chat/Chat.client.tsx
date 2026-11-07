@@ -649,7 +649,13 @@ export const ChatImpl = memo(
             }
             sessionStorage.setItem(marker, '1');
             runAnimation();
-            await sendChatMessage(createMessage({ role: 'user', text: `Je werkt in een beheerde Agency OS-klantworkspace. De huidige broncode van deze klant staat al in de workbench; analyseer die eerst en behoud de bestaande opzet totdat ik om wijzigingen vraag. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}` }) as any);
+            await sendChatMessage(createMessage({
+              role: 'user',
+              // The server extracts the provider/model from persisted user
+              // messages. Keep this automatic managed-workspace instruction
+              // aligned with the model the user sees in the composer.
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\nJe werkt in een beheerde Agency OS-klantworkspace. De huidige broncode van deze klant staat al in de workbench; analyseer die eerst en behoud de bestaande opzet totdat ik om wijzigingen vraag. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}`,
+            }) as any);
           } catch (error) {
             console.error('Could not load the managed Agency OS project source:', error);
           }
