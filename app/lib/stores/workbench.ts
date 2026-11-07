@@ -319,6 +319,19 @@ export class WorkbenchStore {
     }
   }
 
+  /** Hydrate a managed Agency OS workspace from its isolated GitHub repository. */
+  async importManagedProject(files: Array<{ path: string; content: string }>) {
+    await this.queueProjectMutation(async () => {
+      await this.#filesStore.reset();
+      for (const file of files) {
+        await this.#filesStore.createFile(`${WORK_DIR}/${file.path}`, file.content);
+      }
+      this.setDocuments(this.files.get());
+      this.showWorkbench.set(true);
+      this.currentView.set('code');
+    });
+  }
+
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
   }
