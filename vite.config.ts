@@ -29,6 +29,12 @@ export default defineConfig((config) => {
     build: {
       target: 'esnext',
     },
+    // The managed instance is intentionally served through this one reverse
+    // proxy hostname. Vite 8 rejects unknown Host headers by default, which is
+    // desirable; do not widen this to a wildcard or arbitrary sslip.io hosts.
+    preview: {
+      allowedHosts: ['bolt.178-104-105-109.sslip.io'],
+    },
     optimizeDeps: {
       include: [
         'react',
