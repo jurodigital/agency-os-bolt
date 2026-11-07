@@ -170,11 +170,23 @@ export function useChatHistory({ loadHistory = true }: { loadHistory?: boolean }
              * chats.
              */
             if (switchedChat) {
-              await serializeFilesystemTransition(async () => {
-                if (isCurrentLoad()) {
-                  await workbenchStore.resetWorkbench(isCurrentLoad);
-                }
-              });
+              /*
+               * Agency OS creates a persisted chat before navigating here. On a
+               * first visit there is no outgoing project to clean up, yet a
+               * normal reset waits for WebContainer to boot. That wait can be
+               * unbounded in an embedded browser context and previously left
+               * the whole chat surface blank. The managed importer below owns
+               * the initial filesystem hydration, so skip that empty reset.
+               */
+              const isInitialManagedWorkspace = mixedId?.startsWith('agency-os-') && !loadedChatIdRef.current;
+
+              if (!isInitialManagedWorkspace) {
+                await serializeFilesystemTransition(async () => {
+                  if (isCurrentLoad()) {
+                    await workbenchStore.resetWorkbench(isCurrentLoad);
+                  }
+                });
+              }
 
               if (!isCurrentLoad()) {
                 return;
