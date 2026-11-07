@@ -638,13 +638,22 @@ export const ChatImpl = memo(
       // proxy logs, browser history or referrer headers.
       try {
         const raw = sessionStorage.getItem('agency-os-managed-workspace');
-        const session = raw ? JSON.parse(raw) as { workspaceId?: string; briefing?: string } : null;
+        const session = raw ? JSON.parse(raw) as { workspaceId?: string; briefing?: string; files?: Array<{ path: string; content: string }> } : null;
         if (!session?.workspaceId || session.workspaceId !== routeChatId || typeof session.briefing !== 'string' || !session.briefing.trim()) return;
         const marker = `agency-os-managed-workspace:initial:${session.workspaceId}`;
         if (sessionStorage.getItem(marker)) return;
-        sessionStorage.setItem(marker, '1');
-        runAnimation();
-        void sendChatMessage(createMessage({ role: 'user', text: `Je werkt in een beheerde Agency OS-klantworkspace. Gebruik uitsluitend deze briefing als projectcontext. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}` }) as any);
+        void (async () => {
+          try {
+            if (Array.isArray(session.files) && session.files.length > 0) {
+              await workbenchStore.importManagedProject(session.files);
+            }
+            sessionStorage.setItem(marker, '1');
+            runAnimation();
+            await sendChatMessage(createMessage({ role: 'user', text: `Je werkt in een beheerde Agency OS-klantworkspace. De huidige broncode van deze klant staat al in de workbench; analyseer die eerst en behoud de bestaande opzet totdat ik om wijzigingen vraag. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}` }) as any);
+          } catch (error) {
+            console.error('Could not load the managed Agency OS project source:', error);
+          }
+        })();
       } catch { /* A normal Bolt chat remains fully usable if storage is unavailable. */ }
     }, [model, provider, routeChatId, sendChatMessage]);
 

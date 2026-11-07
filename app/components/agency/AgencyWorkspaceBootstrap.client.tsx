@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-type WorkspaceContext = { workspaceId: string; title: string; briefing: string; proposalUrl: string };
+type WorkspaceContext = { workspaceId: string; title: string; briefing: string; proposalUrl: string; files: Array<{ path: string; content: string }> };
 const MANAGED_PROVIDER = 'OpenRouter';
 const MANAGED_MODEL = 'deepseek/deepseek-v4.1-flash-1017';
 
@@ -19,7 +19,7 @@ export function AgencyWorkspaceBootstrap() {
     }).then(async (response) => {
       const body = await response.json().catch(() => null) as WorkspaceContext & { error?: string } | null;
       if (!response.ok || !body?.workspaceId || !body.proposalUrl) throw new Error(body?.error ?? 'De project-sessie kon niet worden geopend.');
-      sessionStorage.setItem('agency-os-managed-workspace', JSON.stringify({ ticket, workspaceId: body.workspaceId, title: body.title, briefing: body.briefing, proposalUrl: body.proposalUrl }));
+      sessionStorage.setItem('agency-os-managed-workspace', JSON.stringify({ ticket, workspaceId: body.workspaceId, title: body.title, briefing: body.briefing, proposalUrl: body.proposalUrl, files: body.files }));
       // A managed Agency OS workspace must always use the server-approved
       // provider/model pair. This also prevents an old Bolt cookie from
       // selecting a model that the Agency OS OpenRouter workspace disallows.
