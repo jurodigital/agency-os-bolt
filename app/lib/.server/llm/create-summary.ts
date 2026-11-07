@@ -186,7 +186,11 @@ ${slicedMessages
 Please provide a summary of the chat till now including the hitorical summary of the chat.
 `,
     model: provider.getModelInstance({
-      model: currentModel,
+      // `currentModel` can be Bolt's legacy default when a persisted chat
+      // message has no explicit model marker. In that case the lookup above
+      // intentionally resolves a supported fallback; send that resolved ID,
+      // not the unavailable original, to the provider.
+      model: modelDetails.name,
       serverEnv,
       apiKeys,
       providerSettings,
