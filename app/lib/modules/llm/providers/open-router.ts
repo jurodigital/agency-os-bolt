@@ -29,6 +29,13 @@ export default class OpenRouterProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'deepseek/deepseek-v4.1-flash-1017',
+      label: 'DeepSeek V4.1 Flash',
+      provider: 'OpenRouter',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 16384,
+    },
+    {
       name: 'z-ai/glm-5.3-flash',
       label: 'GLM 5.3 Flash',
       provider: 'OpenRouter',
