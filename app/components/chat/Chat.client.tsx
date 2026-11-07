@@ -4,7 +4,7 @@ import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -126,6 +126,7 @@ export const ChatImpl = memo(
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
+    const { id: routeChatId } = useParams();
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
@@ -630,6 +631,22 @@ export const ChatImpl = memo(
         );
       }
     }, [model, provider, searchParams]);
+
+    useEffect(() => {
+      // Agency OS hands the briefing over through sessionStorage, not through a
+      // URL query parameter. This prevents customer context from appearing in
+      // proxy logs, browser history or referrer headers.
+      try {
+        const raw = sessionStorage.getItem('agency-os-managed-workspace');
+        const session = raw ? JSON.parse(raw) as { workspaceId?: string; briefing?: string } : null;
+        if (!session?.workspaceId || session.workspaceId !== routeChatId || typeof session.briefing !== 'string' || !session.briefing.trim()) return;
+        const marker = `agency-os-managed-workspace:initial:${session.workspaceId}`;
+        if (sessionStorage.getItem(marker)) return;
+        sessionStorage.setItem(marker, '1');
+        runAnimation();
+        void sendChatMessage(createMessage({ role: 'user', text: `Je werkt in een beheerde Agency OS-klantworkspace. Gebruik uitsluitend deze briefing als projectcontext. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}` }) as any);
+      } catch { /* A normal Bolt chat remains fully usable if storage is unavailable. */ }
+    }, [model, provider, routeChatId, sendChatMessage]);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages, resetParsedMessages } = useMessageParser();
