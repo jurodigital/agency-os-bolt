@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 type Session = { ticket: string; workspaceId: string; title: string; briefing: string; proposalUrl: string };
-const allowedPaths = new Set(['app/page.tsx', 'app/layout.tsx', 'app/globals.css']);
+const allowedPaths = new Set(['app/page.tsx', 'app/layout.tsx', 'app/globals.css', 'app/styles.css']);
 
 function currentSession(): Session | null {
   try {
@@ -25,7 +25,7 @@ export function ManagedWorkspaceTakeover() {
         const path = rawPath.replace(/^\/home\/project\//, '');
         return allowedPaths.has(path) && entry?.type === 'file' && typeof entry.content === 'string' ? [{ path, content: entry.content }] : [];
       });
-      if (!files.length) throw new Error('Nog geen ondersteund websitebestand gevonden. Laat Bolt eerst app/page.tsx, app/layout.tsx of app/globals.css maken.');
+      if (!files.length) throw new Error('Nog geen ondersteund websitebestand gevonden. Laat Bolt eerst app/page.tsx, app/layout.tsx, app/globals.css of app/styles.css maken.');
       const response = await fetch(session.proposalUrl, {
         method: 'POST', cache: 'no-store', credentials: 'omit',
         headers: { Authorization: `Bearer ${session.ticket}`, 'Content-Type': 'application/json' },
