@@ -17,6 +17,7 @@ import type { ITerminal } from '~/types/terminal';
 import { extractRelativePath } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
+import { WORK_DIR } from '~/utils/constants';
 import { unreachable } from '~/utils/unreachable';
 
 const { saveAs } = fileSaver;
