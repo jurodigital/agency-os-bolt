@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DeployButton } from '~/components/deploy/DeployButton';
 import { ReportBugPanel } from '~/components/header/ReportBugPanel';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { ManagedWorkspaceTakeover } from '~/components/agency/ManagedWorkspaceTakeover.client';
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;
@@ -15,11 +16,13 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
   const activePreview = previews[activePreviewIndex];
 
   const shouldShowButtons = activePreview;
+  const isManagedWorkspace = typeof window !== 'undefined' && Boolean(sessionStorage.getItem('agency-os-managed-workspace'));
 
   return (
     <div className="flex items-center gap-1">
+      {isManagedWorkspace && <ManagedWorkspaceTakeover />}
       {/* Deploy Button */}
-      {shouldShowButtons && <DeployButton />}
+      {shouldShowButtons && !isManagedWorkspace && <DeployButton />}
 
       {/* Project Actions */}
       {shouldShowButtons && (
