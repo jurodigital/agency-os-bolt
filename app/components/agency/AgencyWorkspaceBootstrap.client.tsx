@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { createChatWithNextId, openDatabase } from '~/lib/persistence/db';
+import { createMessage } from '~/lib/persistence/messageMigration';
 
 type WorkspaceContext = { workspaceId: string; title: string; briefing: string; proposalUrl: string; files: Array<{ path: string; content: string }> };
 const MANAGED_PROVIDER = 'OpenRouter';
@@ -19,13 +21,25 @@ export function AgencyWorkspaceBootstrap() {
     }).then(async (response) => {
       const body = await response.json().catch(() => null) as WorkspaceContext & { error?: string } | null;
       if (!response.ok || !body?.workspaceId || !body.proposalUrl) throw new Error(body?.error ?? 'De project-sessie kon niet worden geopend.');
-      sessionStorage.setItem('agency-os-managed-workspace', JSON.stringify({ ticket, workspaceId: body.workspaceId, title: body.title, briefing: body.briefing, proposalUrl: body.proposalUrl, files: body.files }));
+      const database = await openDatabase();
+      if (!database) throw new Error('De lokale Bolt-workspace kon niet worden voorbereid.');
+      const seeded = await createChatWithNextId(
+        database,
+        [createMessage({ role: 'user', text: `Agency OS klantworkspace geopend voor ${body.title}. De bestaande klantbron wordt geladen; gebruik de briefing als context voor volgende iteraties.\n\n${body.briefing}` })],
+        `agency-os-${body.workspaceId}`,
+        body.title,
+        undefined,
+        true,
+      );
+      database.close();
+      if (!seeded.urlId) throw new Error('De lokale Bolt-workspace kon niet worden geïdentificeerd.');
+      sessionStorage.setItem('agency-os-managed-workspace', JSON.stringify({ ticket, workspaceId: seeded.urlId, sessionId: body.workspaceId, title: body.title, briefing: body.briefing, proposalUrl: body.proposalUrl, files: body.files }));
       // A managed Agency OS workspace must always use the server-approved
       // provider/model pair. This also prevents an old Bolt cookie from
       // selecting a model that the Agency OS OpenRouter workspace disallows.
       document.cookie = `selectedProvider=${encodeURIComponent(MANAGED_PROVIDER)}; Path=/; SameSite=Lax`;
       document.cookie = `selectedModel=${encodeURIComponent(MANAGED_MODEL)}; Path=/; SameSite=Lax`;
-      window.location.replace(`/chat/${encodeURIComponent(body.workspaceId)}`);
+      window.location.replace(`/chat/${encodeURIComponent(seeded.urlId)}`);
     }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'De project-sessie kon niet worden geopend.'));
   }, []);
 
