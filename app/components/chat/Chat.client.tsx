@@ -647,21 +647,17 @@ export const ChatImpl = memo(
             if (Array.isArray(session.files) && session.files.length > 0) {
               await workbenchStore.importManagedProject(session.files);
             }
+            // Importing a customer workspace must never spend tokens or mutate
+            // source code on its own. The briefing is already persisted as the
+            // opening message; this marker only records that the source is
+            // available for the user's first explicit instruction.
             sessionStorage.setItem(marker, '1');
-            runAnimation();
-            await sendChatMessage(createMessage({
-              role: 'user',
-              // The server extracts the provider/model from persisted user
-              // messages. Keep this automatic managed-workspace instruction
-              // aligned with the model the user sees in the composer.
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\nJe werkt in een beheerde Agency OS-klantworkspace. De huidige broncode van deze klant staat al in de workbench; analyseer die eerst en behoud de bestaande opzet totdat ik om wijzigingen vraag. Maak geen deploys of externe GitHub-koppelingen; de knop “Neem wijzigingen over” maakt later een reviewvoorstel.\n\n${session.briefing}`,
-            }) as any);
           } catch (error) {
             console.error('Could not load the managed Agency OS project source:', error);
           }
         })();
       } catch { /* A normal Bolt chat remains fully usable if storage is unavailable. */ }
-    }, [model, provider, routeChatId, sendChatMessage]);
+    }, [routeChatId]);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages, resetParsedMessages } = useMessageParser();
