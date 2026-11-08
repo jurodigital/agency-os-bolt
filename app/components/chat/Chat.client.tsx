@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
@@ -37,6 +37,7 @@ import { usePluginStore } from '~/lib/stores/plugins';
 import { streamingState } from '~/lib/stores/streaming';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { workbenchStore } from '~/lib/stores/workbench';
+import type { FileMap } from '~/lib/stores/files';
 import type { LlmErrorAlertType } from '~/types/actions';
 import type { ProgressAnnotation } from '~/types/context';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
@@ -59,6 +60,36 @@ import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 
 const logger = createScopedLogger('Chat');
+
+/*
+ * The workbench mirrors everything that exists in WebContainer, including
+ * generated folders such as node_modules and .next. Those files are useful to
+ * the local runtime, but sending them with every model request can turn a
+ * small customer project into a multi-megabyte chat payload. Keep the model
+ * context limited to editable project source instead.
+ */
+const GENERATED_CONTEXT_DIRECTORIES = new Set([
+  '.git',
+  '.next',
+  '.turbo',
+  '.vercel',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+]);
+
+function getChatContextFiles(files: FileMap): FileMap {
+  return Object.fromEntries(
+    Object.entries(files).filter(([filePath, file]) => {
+      if (!file || file.type !== 'file' || file.isBinary) {
+        return false;
+      }
+
+      return !filePath.split('/').some((segment) => GENERATED_CONTEXT_DIRECTORIES.has(segment));
+    }),
+  );
+}
 
 export function Chat() {
   renderLogger.trace('Chat');
@@ -129,6 +160,7 @@ export const ChatImpl = memo(
     const { id: routeChatId } = useParams();
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
+    const chatContextFiles = useMemo(() => getChatContextFiles(files), [files]);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
@@ -186,7 +218,7 @@ export const ChatImpl = memo(
 
     const bodyRef = useRef({
       apiKeys,
-      files,
+      files: chatContextFiles,
       promptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
@@ -217,7 +249,7 @@ export const ChatImpl = memo(
 
     bodyRef.current = {
       apiKeys,
-      files,
+      files: chatContextFiles,
       promptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
