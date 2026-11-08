@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-type Session = { ticket: string; workspaceId: string; title: string; briefing: string; proposalUrl: string };
+type Session = { ticket: string; workspaceId: string; title: string; briefing: string; proposalUrl: string; expiresAt?: string };
 const allowedPaths = new Set(['app/page.tsx', 'app/layout.tsx', 'app/globals.css', 'app/styles.css']);
+
+function formatRemaining(milliseconds: number) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours > 0 ? `${hours}u ${String(minutes).padStart(2, '0')}m` : `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
 
 function currentSession(): Session | null {
   try {
@@ -16,7 +24,30 @@ export function ManagedWorkspaceTakeover() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const session = currentSession();
+  const [expiresAt, setExpiresAt] = useState<string | null>(session?.expiresAt ?? null);
+  const [now, setNow] = useState(() => Date.now());
+  const proposalUrl = session?.proposalUrl;
+  const ticket = session?.ticket;
+
+  useEffect(() => {
+    if (!proposalUrl || !ticket || expiresAt) return;
+    void fetch(proposalUrl, {
+      headers: { Authorization: `Bearer ${ticket}` }, cache: 'no-store', credentials: 'omit',
+    }).then(async (response) => {
+      const body = await response.json().catch(() => null) as { expiresAt?: string } | null;
+      if (response.ok && typeof body?.expiresAt === 'string') setExpiresAt(body.expiresAt);
+    }).catch(() => undefined);
+  }, [expiresAt, proposalUrl, ticket]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   if (!session) return null;
+  const millisecondsRemaining = expiresAt ? new Date(expiresAt).getTime() - now : null;
+  const expired = millisecondsRemaining !== null && millisecondsRemaining <= 0;
+  const nearExpiry = millisecondsRemaining !== null && millisecondsRemaining > 0 && millisecondsRemaining <= 15 * 60 * 1000;
 
   async function submit() {
     setSubmitting(true); setMessage(null);
@@ -39,5 +70,5 @@ export function ManagedWorkspaceTakeover() {
     finally { setSubmitting(false); }
   }
 
-  return <div className="flex items-center gap-2"><button onClick={submit} disabled={submitting} className="rounded-md px-3 py-1.5 text-xs bg-accent-500 text-white hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60 flex gap-1.5"><div className="i-ph:git-pull-request" /><span>{submitting ? 'Overnemen…' : 'Neem wijzigingen over'}</span></button>{message && <span className="max-w-72 text-xs text-bolt-elements-textSecondary">{message}</span>}</div>;
+  return <div className="flex items-center gap-2"><span className={`text-xs font-medium ${expired || nearExpiry ? 'text-red-300' : 'text-bolt-elements-textSecondary'}`} title="Tijd tot deze klantworkspace niet meer kan worden overgenomen">{millisecondsRemaining === null ? 'Sessie controleren…' : expired ? 'Sessie verlopen' : `Sessie: ${formatRemaining(millisecondsRemaining)}`}</span><button onClick={submit} disabled={submitting || expired} className="rounded-md px-3 py-1.5 text-xs bg-accent-500 text-white hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60 flex gap-1.5"><div className="i-ph:git-pull-request" /><span>{submitting ? 'Overnemen…' : 'Neem wijzigingen over'}</span></button>{message && <span className="max-w-72 text-xs text-bolt-elements-textSecondary">{message}</span>}</div>;
 }
