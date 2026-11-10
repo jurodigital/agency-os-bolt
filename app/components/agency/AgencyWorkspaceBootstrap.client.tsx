@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { UIMessage } from 'ai';
 import { createChatWithNextId, openDatabase } from '~/lib/persistence/db';
 import { createMessage } from '~/lib/persistence/messageMigration';
 
@@ -24,9 +25,14 @@ export function AgencyWorkspaceBootstrap() {
       if (!Array.isArray(body.files) || body.files.length === 0) throw new Error('De huidige projectbestanden ontbreken in de klantworkspace.');
       const database = await openDatabase();
       if (!database) throw new Error('De lokale Bolt-workspace kon niet worden voorbereid.');
+      const openingMessage = createMessage({
+        role: 'user',
+        text: `Agency OS klantworkspace geopend voor ${body.title}. De bestaande klantbron wordt geladen; gebruik de briefing als context voor volgende iteraties.\n\n${body.briefing}`,
+      });
+      if (!openingMessage.id) throw new Error('De lokale Bolt-workspace kon niet worden voorbereid.');
       const seeded = await createChatWithNextId(
         database,
-        [createMessage({ role: 'user', text: `Agency OS klantworkspace geopend voor ${body.title}. De bestaande klantbron wordt geladen; gebruik de briefing als context voor volgende iteraties.\n\n${body.briefing}` })],
+        [openingMessage as UIMessage],
         `agency-os-${body.workspaceId}`,
         body.title,
         undefined,

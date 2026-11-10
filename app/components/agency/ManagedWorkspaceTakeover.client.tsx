@@ -45,6 +45,7 @@ export function ManagedWorkspaceTakeover() {
   }, []);
 
   if (!session) return null;
+  const activeSession = session;
   const millisecondsRemaining = expiresAt ? new Date(expiresAt).getTime() - now : null;
   const expired = millisecondsRemaining !== null && millisecondsRemaining <= 0;
   const nearExpiry = millisecondsRemaining !== null && millisecondsRemaining > 0 && millisecondsRemaining <= 15 * 60 * 1000;
@@ -57,10 +58,10 @@ export function ManagedWorkspaceTakeover() {
         return allowedPaths.has(path) && entry?.type === 'file' && typeof entry.content === 'string' ? [{ path, content: entry.content }] : [];
       });
       if (!files.length) throw new Error('Nog geen ondersteund websitebestand gevonden. Laat Bolt eerst app/page.tsx, app/layout.tsx, app/globals.css of app/styles.css maken.');
-      const response = await fetch(session.proposalUrl, {
+      const response = await fetch(activeSession.proposalUrl, {
         method: 'POST', cache: 'no-store', credentials: 'omit',
-        headers: { Authorization: `Bearer ${session.ticket}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: `${session.title}: iteratie uit Bolt`, changelog: ['Wijzigingen uit de beheerde Bolt-workspace.'], files }),
+        headers: { Authorization: `Bearer ${activeSession.ticket}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: `${activeSession.title}: iteratie uit Bolt`, changelog: ['Wijzigingen uit de beheerde Bolt-workspace.'], files }),
       });
       const body = await response.json().catch(() => null) as { pullRequestUrl?: string; error?: string } | null;
       if (!response.ok || !body?.pullRequestUrl) throw new Error(body?.error ?? 'Het voorstel kon niet worden overgenomen.');

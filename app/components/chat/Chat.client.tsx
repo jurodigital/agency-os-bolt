@@ -59,6 +59,19 @@ import { createCommandsMessage, detectProjectCommands } from '~/utils/projectCom
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 
+const MANAGED_WORKSPACE_PROMPT_ID = 'juro-ui-director';
+
+function isAgencyManagedWorkspace(workspaceId: string | undefined) {
+  try {
+    const raw = sessionStorage.getItem('agency-os-managed-workspace');
+    const session = raw ? (JSON.parse(raw) as { workspaceId?: string }) : null;
+
+    return Boolean(workspaceId && session?.workspaceId === workspaceId);
+  } catch {
+    return false;
+  }
+}
+
 const logger = createScopedLogger('Chat');
 
 /*
@@ -172,6 +185,8 @@ export const ChatImpl = memo(
 
     // const _supabaseAlert = undefined;
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+    const managedWorkspace = isAgencyManagedWorkspace(routeChatId);
+    const effectivePromptId = managedWorkspace ? MANAGED_WORKSPACE_PROMPT_ID : promptId;
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
 
     const [model, setModel] = useState(() => {
@@ -219,7 +234,7 @@ export const ChatImpl = memo(
     const bodyRef = useRef({
       apiKeys,
       files: chatContextFiles,
-      promptId,
+      promptId: effectivePromptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
       agentMode,
@@ -250,7 +265,7 @@ export const ChatImpl = memo(
     bodyRef.current = {
       apiKeys,
       files: chatContextFiles,
-      promptId,
+      promptId: effectivePromptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
       agentMode,
