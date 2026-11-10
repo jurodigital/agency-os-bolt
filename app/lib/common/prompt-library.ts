@@ -1,3 +1,4 @@
+import { getJuroUiDirectorPrompt } from './prompts/juro-ui-director';
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
 import { getProjectToolPrompt } from './prompts/project-tools';
@@ -36,6 +37,11 @@ export class PromptLibrary {
         options.projectTools
           ? getProjectToolPrompt(options)
           : getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
+    },
+    'juro-ui-director': {
+      label: 'Juro UI Director',
+      description: 'Mandatory content-first UI/UX direction for Agency OS client workspaces',
+      get: (options) => getJuroUiDirectorPrompt(options),
     },
     'tiny-tim': {
       label: 'Tiny Tim',
