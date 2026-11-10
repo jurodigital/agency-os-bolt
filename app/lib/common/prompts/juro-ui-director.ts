@@ -1,3 +1,4 @@
+import { getJuroFrontendCraftPrompt } from './juro-frontend-craft';
 import { getFineTunedPrompt } from './new-prompt';
 import type { PromptOptions } from '~/lib/common/prompt-library';
 
@@ -93,5 +94,7 @@ export function getJuroUiDirectorPrompt(options: PromptOptions) {
     coherent? Does the mobile version remain intentional? Remove anything that
     looks copied from a generic AI website generator.
   </final_design_check>
-</juro_ui_director>`;
+</juro_ui_director>
+
+${getJuroFrontendCraftPrompt()}`;
 }

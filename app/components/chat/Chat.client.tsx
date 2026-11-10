@@ -59,7 +59,7 @@ import { createCommandsMessage, detectProjectCommands } from '~/utils/projectCom
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 
-const MANAGED_WORKSPACE_PROMPT_ID = 'juro-ui-director';
+const MANAGED_WORKSPACE_PROMPT_ID = 'juro-frontend-craft';
 
 function isAgencyManagedWorkspace(workspaceId: string | undefined) {
   try {

@@ -43,6 +43,11 @@ export class PromptLibrary {
       description: 'Mandatory content-first UI/UX direction for Agency OS client workspaces',
       get: (options) => getJuroUiDirectorPrompt(options),
     },
+    'juro-frontend-craft': {
+      label: 'Juro Frontend Craft',
+      description: 'Mandatory UI direction and disciplined frontend execution for Agency OS client workspaces',
+      get: (options) => getJuroUiDirectorPrompt(options),
+    },
     'tiny-tim': {
       label: 'Tiny Tim',
       description: 'Optimized for small models with terse format and modern 2026 standards',
